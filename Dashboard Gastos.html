@@ -58,13 +58,22 @@ tr:hover td { background:#f9f9ff; }
 .bg-green { background:#d4f4e2; color:#1a6b3a; }
 .bg-gray  { background:#f0f0f0; color:#666; }
 tr.hidden { display:none; }
+.ciudad-btn { padding:6px 18px; border-radius:999px; border:1.5px solid #c0c8e0;
+               background:white; color:#555; font-size:.78rem; cursor:pointer; transition:all .2s; }
+.ciudad-btn.active { background:#2d3561; color:white; border-color:#2d3561; }
+.fv-btn { padding:6px 18px; border-radius:999px; border:1.5px solid #c0c8e0;
+           background:white; color:#555; font-size:.78rem; cursor:pointer; transition:all .2s; }
+.fv-btn.active { background:#5BAD8F; color:white; border-color:#5BAD8F; }
+.fv-btn:hover:not(.active) { background:#e8edf8; }
+.ciudad-btn:hover:not(.active) { background:#e8edf8; }
+.hist-filtros { margin-bottom:14px; display:flex; flex-wrap:wrap; gap:8px; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>📊 Dashboard Gastos — Fével &amp; Personal</h1>
-  <span>Actualizado: 07/06/2026 14:32</span>
+  <span>Actualizado: 08/06/2026 12:14</span>
 </header>
 
 <div class="toolbar">
@@ -86,40 +95,58 @@ tr.hidden { display:none; }
 <div class="charts" id="chartsGrid">
   <!-- HISTÓRICO PERSONAL -->
   <div class="card wide" id="cardHistPersonal" style="display:none">
-    <h3>Histórico Personal — Tipo de gasto por mes</h3>
+    <h3>Histórico Personal — Ciudad por mes</h3>
+    <div class="hist-filtros"><button class="ciudad-btn active" onclick="setCiudadHistPersonal('TODAS',event)">Todas</button><button class="ciudad-btn" onclick="setCiudadHistPersonal('BOGOTÀ',event)">Bogotà</button><button class="ciudad-btn" onclick="setCiudadHistPersonal('CARTAGO',event)">Cartago</button></div>
+    <div class="hist-filtros" style="margin-top:6px"><button class="fv-btn active" onclick="setFVHistPersonal('TODAS',event)">Todas</button><button class="fv-btn" onclick="setFVHistPersonal('FIJO',event)">Fijo</button><button class="fv-btn" onclick="setFVHistPersonal('VARIABLE',event)">Variable</button><button class="fv-btn" onclick="setFVHistPersonal('PERIODICO',event)">Periodico</button></div>
+    <div class="chart-wrap tall"><canvas id="cHistPersonalCiudad"></canvas></div>
+    <h3 style="margin-top:24px">Fijo / Variable por mes</h3>
+    <div class="chart-wrap tall"><canvas id="cHistPersonalFV"></canvas></div>
+    <h3 style="margin-top:24px">Proveedor por mes</h3>
+    <div class="chart-wrap tall"><canvas id="cHistPersonalProv"></canvas></div>
+    <h3 style="margin-top:24px">Tipo de gasto por mes</h3>
     <div class="chart-wrap tall"><canvas id="cHistPersonal"></canvas></div>
   </div>
   <!-- HISTÓRICO FÉVEL -->
   <div class="card wide" id="cardHistFevel" style="display:none">
     <h3>Histórico Fével — Tipo de gasto por mes</h3>
     <div class="chart-wrap tall"><canvas id="cHistFevel"></canvas></div>
+    <h3 style="margin-top:24px">Proveedor por mes</h3>
+    <div class="chart-wrap tall"><canvas id="cHistFevelProv"></canvas></div>
   </div>
   <!-- TODO -->
-  <div class="card" id="cardClasif">
-    <h3>Personal vs Fével</h3>
-    <div class="chart-wrap"><canvas id="cClasif"></canvas></div>
+  <div class="card wide" id="cardClasif">
+    <h3>Personal vs Fével — por mes</h3>
+    <div class="chart-wrap tall"><canvas id="cClasif"></canvas></div>
   </div>
   <!-- PERSONAL / FÉVEL -->
-  <div class="card" id="cardTipo" style="display:none">
-    <h3>Por tipo de gasto</h3>
-    <div class="chart-wrap"><canvas id="cTipo"></canvas></div>
+  <div class="card wide" id="cardCiudad">
+    <h3>Por ciudad — por mes</h3>
+    <div class="chart-wrap tall"><canvas id="cCiudad"></canvas></div>
   </div>
-  <div class="card" id="cardGastoActivo" style="display:none">
-    <h3>Gasto / Activo</h3>
-    <div class="chart-wrap"><canvas id="cGastoActivo"></canvas></div>
+  <div class="card wide" id="cardCentroFabrica" style="display:none">
+    <h3>Centro / Fábrica — por mes</h3>
+    <div class="chart-wrap tall"><canvas id="cCentroFabrica"></canvas></div>
+  </div>
+  <div class="card" id="cardFijoVariable">
+    <h3>Fijo / Variable</h3>
+    <div class="chart-wrap"><canvas id="cFijoVariable"></canvas></div>
   </div>
   <!-- COMUNES -->
   <div class="card">
     <h3>Por medio de pago</h3>
     <div class="chart-wrap"><canvas id="cOrigen"></canvas></div>
   </div>
-  <div class="card" id="cardCiudad">
-    <h3>Por ciudad</h3>
-    <div class="chart-wrap"><canvas id="cCiudad"></canvas></div>
-  </div>
   <div class="card">
     <h3>Por periodicidad</h3>
     <div class="chart-wrap"><canvas id="cPeriodicidad"></canvas></div>
+  </div>
+  <div class="card" id="cardTipo" style="display:none">
+    <h3>Por tipo de gasto</h3>
+    <div class="chart-wrap"><canvas id="cTipo"></canvas></div>
+  </div>
+  <div class="card" id="cardProveedor" style="display:none">
+    <h3>Proveedor</h3>
+    <div class="chart-wrap"><canvas id="cProveedor"></canvas></div>
   </div>
   <div class="card">
     <h3>Gastos por día</h3>
@@ -135,6 +162,17 @@ tr.hidden { display:none; }
       <th>Clasificación</th><th>Ciudad</th><th>Periodicidad</th><th>Valor</th><th>Observaciones</th>
     </tr></thead>
     <tbody id="tablaBody">
+        <tr data-mes="2026-06" data-clasif="PERSONAL">
+          <td>08/06/2026</td>
+          <td>BANCOLOMBIA</td>
+          <td>MERCADO CARTAGO</td>
+          <td>MERCADO</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>MENSUAL</td>
+          <td class="monto">$23.900</td>
+          <td class="obs"></td>
+        </tr>
         <tr data-mes="2026-06" data-clasif="PERSONAL">
           <td>07/06/2026</td>
           <td>TARJETA COLPATRIA</td>
@@ -156,6 +194,28 @@ tr.hidden { display:none; }
           <td>MENSUAL</td>
           <td class="monto">$45.000</td>
           <td class="obs">La carreta</td>
+        </tr>
+        <tr data-mes="2026-06" data-clasif="PERSONAL">
+          <td>07/06/2026</td>
+          <td>EFECTIVO</td>
+          <td>CAROLA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$200.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-06" data-clasif="PERSONAL">
+          <td>07/06/2026</td>
+          <td>BANCOLOMBIA</td>
+          <td>COMIDAS CARTAGO</td>
+          <td>COMIDA</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>MENSUAL</td>
+          <td class="monto">$32.000</td>
+          <td class="obs"></td>
         </tr>
         <tr data-mes="2026-06" data-clasif="PERSONAL">
           <td>06/06/2026</td>
@@ -520,6 +580,72 @@ tr.hidden { display:none; }
           <td class="monto">$225.008</td>
           <td class="obs"></td>
         </tr>
+        <tr data-mes="2026-06" data-clasif="FÉVEL">
+          <td>02/06/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL SHAID</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-06" data-clasif="FÉVEL">
+          <td>02/06/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL ADRIANA</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-06" data-clasif="FÉVEL">
+          <td>02/06/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL FERNEY</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-06" data-clasif="FÉVEL">
+          <td>02/06/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES SAID</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-06" data-clasif="FÉVEL">
+          <td>02/06/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES ADRIANA</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-06" data-clasif="FÉVEL">
+          <td>02/06/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES FERNEY</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
         <tr data-mes="2026-06" data-clasif="PERSONAL">
           <td>01/06/2026</td>
           <td>TARJETA COLPATRIA</td>
@@ -595,6 +721,17 @@ tr.hidden { display:none; }
           <td>CARTAGO</td>
           <td>MENSUAL</td>
           <td class="monto">$3.450</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-06" data-clasif="FÉVEL">
+          <td>01/06/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN IVA</td>
+          <td>IMPUESTOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$1.500.000</td>
           <td class="obs"></td>
         </tr>
         <tr data-mes="2026-05" data-clasif="PERSONAL">
@@ -741,6 +878,259 @@ tr.hidden { display:none; }
           <td class="obs"></td>
         </tr>
         <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>COLPATRIA</td>
+          <td>INTERMEDIACIÓN ADDI</td>
+          <td>INTERMEDIACIÓN EN VENTAS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$104.809</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>COLPATRIA</td>
+          <td>INTERMEDIACIÓN BOLD</td>
+          <td>INTERMEDIACIÓN EN VENTAS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$40.663</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>INSUMOS VARIOS</td>
+          <td>INSUMOS VARIOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>SIN</td>
+          <td class="monto">$7.800</td>
+          <td class="obs">Cremallera</td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="PERSONAL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>VARIOS VIVIANA</td>
+          <td>VARIOS</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>SIN</td>
+          <td class="monto">$143.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>NOMINA NICOLAS</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$50.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="PERSONAL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE NICOLAS</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="PERSONAL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>JUAN ESTEBAN CARDONA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>ASEO Y CAFETERÍA</td>
+          <td>ASEO Y CAFETERIA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$61.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>RETEICA</td>
+          <td>IMPUESTOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$53.440</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE Y ACARREOS</td>
+          <td>TRANSPORTE</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$90.400</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>PAPELERÍA</td>
+          <td>PAPELERÍA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>SIN</td>
+          <td class="monto">$18.750</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="PERSONAL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>VARIOS VIVIANA</td>
+          <td>VARIOS</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>SIN</td>
+          <td class="monto">$113.100</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="PERSONAL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>PARQUEADERO</td>
+          <td>TRANSPORTE</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>SIN</td>
+          <td class="monto">$5.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="SIN CLASIFICAR">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td>SIN CLASIFICAR</td>
+          <td><span class="badge bg-gray">SIN CLASIFICAR</span></td>
+          <td>SIN</td>
+          <td>SIN</td>
+          <td class="monto">$1.572.255</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>INSUMOS VARIOS</td>
+          <td>INSUMOS VARIOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>SIN</td>
+          <td class="monto">$8.000</td>
+          <td class="obs">Tornillos</td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL SHAID</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL ADRIANA</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL FERNEY</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES SAID</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES ADRIANA</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES FERNEY</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
+          <td>31/05/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN IVA</td>
+          <td>IMPUESTOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$1.500.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="PERSONAL">
+          <td>31/05/2026</td>
+          <td>EFECTIVO</td>
+          <td>CAROLA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$200.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-05" data-clasif="FÉVEL">
           <td>30/05/2026</td>
           <td>EFECTIVO</td>
           <td>TRANSPORTE Y ACARREOS</td>
@@ -881,17 +1271,6 @@ tr.hidden { display:none; }
           <td>BOGOTÀ</td>
           <td>MENSUAL</td>
           <td class="monto">$1.000.000</td>
-          <td class="obs"></td>
-        </tr>
-        <tr data-mes="2026-05" data-clasif="FÉVEL">
-          <td>25/05/2026</td>
-          <td>COLPATRIA</td>
-          <td>RETENCIÓN EN LA FUENTE</td>
-          <td>IMPUESTOS</td>
-          <td><span class="badge bg-green">FÉVEL</span></td>
-          <td>SIN</td>
-          <td>MENSUAL</td>
-          <td class="monto">$435.000</td>
           <td class="obs"></td>
         </tr>
         <tr data-mes="2026-05" data-clasif="PERSONAL">
@@ -1389,17 +1768,6 @@ tr.hidden { display:none; }
           <td class="monto">$494.000</td>
           <td class="obs"></td>
         </tr>
-        <tr data-mes="2026-04" data-clasif="PERSONAL">
-          <td>30/04/2026</td>
-          <td>BANCOLOMBIA</td>
-          <td>EMPLEADA CARTAGO</td>
-          <td>EMPLEADA</td>
-          <td><span class="badge bg-blue">PERSONAL</span></td>
-          <td>CARTAGO</td>
-          <td>MENSUAL</td>
-          <td class="monto">$400.000</td>
-          <td class="obs"></td>
-        </tr>
         <tr data-mes="2026-04" data-clasif="FÉVEL">
           <td>30/04/2026</td>
           <td>COLPATRIA</td>
@@ -1446,7 +1814,7 @@ tr.hidden { display:none; }
         </tr>
         <tr data-mes="2026-04" data-clasif="FÉVEL">
           <td>30/04/2026</td>
-          <td>COPATRIA</td>
+          <td>COLPATRIA</td>
           <td>NOMINA SAID</td>
           <td>NOMINA</td>
           <td><span class="badge bg-green">FÉVEL</span></td>
@@ -1457,7 +1825,7 @@ tr.hidden { display:none; }
         </tr>
         <tr data-mes="2026-04" data-clasif="FÉVEL">
           <td>30/04/2026</td>
-          <td>COPATRIA</td>
+          <td>COLPATRIA</td>
           <td>NOMINA ADRIANA</td>
           <td>NOMINA</td>
           <td><span class="badge bg-green">FÉVEL</span></td>
@@ -1565,6 +1933,556 @@ tr.hidden { display:none; }
           <td class="monto">$1.000.000</td>
           <td class="obs"></td>
         </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>COLPATRIA</td>
+          <td>RETENCIÓN EN LA FUENTE</td>
+          <td>IMPUESTOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$435.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL SHAID</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL ADRIANA</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL FERNEY</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES SAID</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES ADRIANA</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES FERNEY</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN IVA</td>
+          <td>IMPUESTOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$1.500.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>CAROLA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$200.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>INTERMEDIACIÓN ADDI</td>
+          <td>INTERMEDIACIÓN EN VENTAS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$82.300</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>INTERMEDIACIÓN BOLD</td>
+          <td>INTERMEDIACIÓN EN VENTAS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$39.380</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>ENERGIA FABRICA</td>
+          <td>SERVICIOS PÙBLICOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$230.755</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>AGUA FABRICA</td>
+          <td>SERVICIOS PÙBLICOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$183.365</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE Y ACARREOS</td>
+          <td>TRANSPORTE</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$300.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>BOTAS FERNEY</td>
+          <td>DOTACIÓN</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>S</td>
+          <td class="monto">$117.900</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>INTERMEDIACIÓN BOLD</td>
+          <td>INTERMEDIACIÓN EN VENTAS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$149.215</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>BOTELLONES AGUA</td>
+          <td>ASEO Y CAFETERIA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>SIN</td>
+          <td class="monto">$27.400</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE NICOLAS</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>JUAN ESTEBAN CARDONA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>RUBEN</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>VARIOS FÁBRICA</td>
+          <td>GASTOS VARIOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>SIN</td>
+          <td class="monto">$16.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>PAPELERÍA</td>
+          <td>PAPELERÍA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>SIN</td>
+          <td class="monto">$30.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>ASEO Y CAFETERÍA</td>
+          <td>ASEO Y CAFETERIA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$12.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>OSCAR RENDÓN</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$50.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE Y ACARREOS</td>
+          <td>TRANSPORTE</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$10.200</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>LUCIO URBANO</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$561.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>RUBEN</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$200.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE NICOLAS</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>NOMINA NICOLAS</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$50.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>JUAN ESTEBAN CARDONA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>LUCIO URBANO</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$200.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>RUBEN</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$111.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>ADECUACIONES FÁBRICA</td>
+          <td>ADECUACIONES / REPAR.</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>CARTAGO</td>
+          <td>SIN</td>
+          <td class="monto">$42.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>GASOLINA</td>
+          <td>TRANSPORTE</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>SIN</td>
+          <td class="monto">$20.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>RUBEN</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$50.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>LUCIO URBANO</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$150.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE NICOLAS</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>MENSUAL</td>
+          <td class="monto">$120.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>OSCAR RENDÓN</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>JUAN ESTEBAN CARDONA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE Y ACARREOS</td>
+          <td>TRANSPORTE</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$8.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>NOMINA NICOLAS</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE Y ACARREOS</td>
+          <td>TRANSPORTE</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$55.700</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>TRANSPORTE NICOLAS</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>CARTAGO</td>
+          <td>MENSUAL</td>
+          <td class="monto">$120.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>CARLOS SERNA</td>
+          <td>GESTIÒN EN SEGURIDAD</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$200.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>CARLOS ARTURO CASTAÑEDA</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$195.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>RUBEN</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$300.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>JUAN ESTEBAN CARDONA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$100.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>LUCIO URBANO</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$250.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="FÉVEL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>OSCAR RENDÓN</td>
+          <td>NOMINA INDIRECTA</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$150.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-04" data-clasif="PERSONAL">
+          <td>30/04/2026</td>
+          <td>EFECTIVO</td>
+          <td>JUAN ESTEBAN CARDONA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$60.000</td>
+          <td class="obs"></td>
+        </tr>
         <tr data-mes="2026-03" data-clasif="FÉVEL">
           <td>31/03/2026</td>
           <td>EFECTIVO</td>
@@ -1685,6 +2603,105 @@ tr.hidden { display:none; }
           <td>MENSUAL</td>
           <td class="monto">$1.000.000</td>
           <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="FÉVEL">
+          <td>31/03/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL SHAID</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="FÉVEL">
+          <td>31/03/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL ADRIANA</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="FÉVEL">
+          <td>31/03/2026</td>
+          <td>COLPATRIA</td>
+          <td>SEGURIDAD SOCIAL FERNEY</td>
+          <td>SEGURIDAD SOCIAL</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$393.064</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="FÉVEL">
+          <td>31/03/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES SAID</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="FÉVEL">
+          <td>31/03/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES ADRIANA</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="FÉVEL">
+          <td>31/03/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN PRESTACIONES FERNEY</td>
+          <td>PRESTACIONES SOCIALES</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$436.667</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="FÉVEL">
+          <td>31/03/2026</td>
+          <td>PROVISIÓN</td>
+          <td>PROVISIÓN IVA</td>
+          <td>IMPUESTOS</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$1.500.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="PERSONAL">
+          <td>31/03/2026</td>
+          <td>EFECTIVO</td>
+          <td>CAROLA</td>
+          <td>DONACIÒN</td>
+          <td><span class="badge bg-blue">PERSONAL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$200.000</td>
+          <td class="obs"></td>
+        </tr>
+        <tr data-mes="2026-03" data-clasif="FÉVEL">
+          <td>31/03/2026</td>
+          <td>EFECTIVO</td>
+          <td>CARLOS SERNA</td>
+          <td>GESTIÒN EN SEGURIDAD</td>
+          <td><span class="badge bg-green">FÉVEL</span></td>
+          <td>SIN</td>
+          <td>MENSUAL</td>
+          <td class="monto">$200.000</td>
+          <td class="obs"></td>
         </tr></tbody>
   </table>
 </div>
@@ -1693,12 +2710,42 @@ tr.hidden { display:none; }
 Chart.register(ChartDataLabels);
 const fmtCOP = v => '$' + Math.round(v).toLocaleString('es-CO');
 
-const TODOS  = [{"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "EFECTIVO", "gasto": "NOMINA FERNEY", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COPATRIA", "gasto": "NOMINA SAID", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COPATRIA", "gasto": "NOMINA ADRIANA", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "EFECTIVO", "gasto": "EMPLEADA CARTAGO", "valor": 700000.0, "obs": "", "tipo": "EMPLEADA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA BOGOTÁ", "valor": 400000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURIDAD NACIONAL CENTRO", "valor": 103248.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURIDAD NACIONAL FÀBRICA", "valor": 103248.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "OFELIA VÉLEZ", "valor": 350000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "EFECTIVO", "gasto": "CONTABILIDAD ROGER", "valor": 1200000.0, "obs": "", "tipo": "CONTABILIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COLPATRIA", "gasto": "ARRENDAMIENTO CENTRO", "valor": 2650000.0, "obs": "", "tipo": "ARRENDAMIENTO", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "ARRENDAMIENTO HERNANDO", "valor": 1000000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA CARTAGO", "valor": 400000.0, "obs": "", "tipo": "EMPLEADA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "OFFICE 365", "valor": 520000.0, "obs": "", "tipo": "SOFTWARE / SUSC.", "periodicidad": "ANUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "IMPUESTO VEHÍCULO", "valor": 1820000.0, "obs": "EIZ791", "tipo": "IMPUESTOS", "periodicidad": "ANUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURO LOCAL ISERRA", "valor": 1200000.0, "obs": "", "tipo": "SEGUROS", "periodicidad": "ANUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "NOMINA FERNEY", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COPATRIA", "gasto": "NOMINA SAID", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COPATRIA", "gasto": "NOMINA ADRIANA", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "EMPLEADA CARTAGO", "valor": 700000.0, "obs": "", "tipo": "EMPLEADA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA BOGOTÁ", "valor": 500000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "SERVICIOS HERNANDO", "valor": 258380.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURIDAD NACIONAL CENTRO", "valor": 103248.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURIDAD NACIONAL FÀBRICA", "valor": 103248.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "OFELIA VÉLEZ", "valor": 350000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "CONTABILIDAD ROGER", "valor": 1200000.0, "obs": "", "tipo": "CONTABILIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "ARRENDAMIENTO CENTRO", "valor": 2650000.0, "obs": "", "tipo": "ARRENDAMIENTO", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "ARRENDAMIENTO HERNANDO", "valor": 1000000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "RETENCIÓN EN LA FUENTE", "valor": 435000.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA CARTAGO", "valor": 700000.0, "obs": "", "tipo": "EMPLEADA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "NOMINA FERNEY", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "NOMINA SAID", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "NOMINA ADRIANA", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA BOGOTÁ", "valor": 400000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 153000.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "NEQUI", "gasto": "VARIOS BOGOTÁ", "valor": 28000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS BOGOTÁ", "valor": 124850.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "MERCADO CARTAGO", "valor": 50000.0, "obs": "", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS ISABELLA", "valor": 300000.0, "obs": "", "tipo": "ISABELLA", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "GASOLINA", "valor": 200000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE Y ACARREOS", "valor": 4000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "COLPATRIA", "gasto": "PUBLICIDAD", "valor": 328000.0, "obs": "", "tipo": "PUBLICIDAD", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "VARIOS VIVIANA", "valor": 70000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "MERCADO CARTAGO", "valor": 50000.0, "obs": "", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "VARIOS VIVIANA", "valor": 20000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "GASOLINA", "valor": 30000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "ENERGIA CASA", "valor": 199196.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "AGUA CASA", "valor": 154059.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "GAS CASA", "valor": 85919.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD NACIONAL CENTRO", "valor": 139120.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "COLPATRIA", "gasto": "ARRENDAMIENTO CENTRO", "valor": 2650000.0, "obs": "", "tipo": "ARRENDAMIENTO", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "COLPATRIA", "gasto": "IVA", "valor": 6109000.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "BANCOLOMBIA", "gasto": "ARRENDAMIENTO HERNANDO", "valor": 1000000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-02", "fecha_label": "02/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 20000.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "ALMUERZO BOGOTÁ", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "CLARO FABRICA", "valor": 87700.0, "obs": "", "tipo": "COMUNICACIONES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "BOTELLONES AGUA", "valor": 27400.0, "obs": "", "tipo": "ASEO Y CAFETERIA", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "PRESTAMO", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD NACIONAL FÀBRICA", "valor": 139120.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD NACIONAL CENTRO", "valor": 67376.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "ENERGIA CENTRO", "valor": 123056.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "RETENCIÓN EN LA FUENTE", "valor": 337000.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "AGUA CENTRO", "valor": 152443.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "AGUA FABRICA", "valor": 185193.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "ENERGIA FABRICA", "valor": 272633.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "OFELIA VÉLEZ", "valor": 400000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "REGALOS", "valor": 80000.0, "obs": "ISAAC", "tipo": "REGALOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 250000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "COMIDAS BOGOTÁ", "valor": 159580.0, "obs": "", "tipo": "COMIDA", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 531000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "BOLSAS TELA ARTURO", "valor": 165000.0, "obs": "", "tipo": "EMPAQUE", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS BOGOTÁ", "valor": 2577000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS ISABELLA", "valor": 434000.0, "obs": "", "tipo": "ISABELLA", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS VIVIANA", "valor": 1500000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "CONTABILIDAD ROGER", "valor": 1200000.0, "obs": "", "tipo": "CONTABILIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "ENERGIA CENTRO", "valor": 145846.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "AGUA CENTRO", "valor": 150630.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 250000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "VARIOS BOGOTÁ", "valor": 130000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "CARLOS ARTURO CASTAÑEDA", "valor": 292500.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "JAVIER OSPINA", "valor": 400000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-12", "fecha_label": "12/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 361000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 50000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 50000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 400000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "CARLOS SERNA", "valor": 200000.0, "obs": "", "tipo": "GESTIÒN EN SEGURIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 50000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-05-02", "fecha_label": "02/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-01", "fecha_label": "01/05/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-05-01", "fecha_label": "01/05/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 150000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-01", "fecha_label": "01/05/2026", "origen": "EFECTIVO", "gasto": "CARLOS ARTURO CASTAÑEDA", "valor": 494000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-05-16", "fecha_label": "16/05/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 120000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "ALMUERZO BOGOTA", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 55000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 22000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "TIQUETE AEREO", "valor": 353720.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "WHATSAP BUSINESS", "valor": 29221.0, "obs": "", "tipo": "SOFTWARE / SUSC.", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA NEQUI", "valor": 87338.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "MERCADO CARTAGO", "valor": 3450.0, "obs": "", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "PICO Y PLACA SOLIDARIO", "valor": 87900.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "CUENTA X COBRAR", "valor": 280000.0, "obs": "Arreglo anden Carola", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "ALMUERZO BOGOTA", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "DALE", "gasto": "LIVE CONNECT", "valor": 280476.0, "obs": "", "tipo": "SOFTWARE / SUSC.", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "TIQUETE FAISA", "valor": 410760.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "TARJETA VIVI", "valor": 480400.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA DALE", "valor": 50000.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA DALE", "valor": 225008.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS BOGOTÁ", "valor": 20000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA NEQUI", "valor": 26000.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "NEQUI", "gasto": "AMAZON KINDLE", "valor": 34084.0, "obs": "", "tipo": "LIBROS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "NEQUI", "gasto": "TELEVISIÓN SUSCRIPCIÓN", "valor": 13900.0, "obs": "", "tipo": "SUSCRIPCION TV", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "ALMUERZO BOGOTÁ", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "VARIOS BOGOTÁ", "valor": 12000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-04", "fecha_label": "04/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS BOGOTÁ", "valor": 20000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-04", "fecha_label": "04/06/2026", "origen": "BANCOLOMBIA", "gasto": "JUAN DAVID", "valor": 100000.0, "obs": "", "tipo": "SOFTWARE / SUSC.", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-06-04", "fecha_label": "04/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "ALMUERZO BOGOTÁ", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-04", "fecha_label": "04/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 18000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 44000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "MEDICAMENTOS POR RECOBRO", "valor": 33546.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "PELUQUERIA", "valor": 25000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 46000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 57600.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS CARTAGO", "valor": 20000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS CARTAGO", "valor": 20008.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "NEQUI", "gasto": "MICROSOFT ROGER", "valor": 36999.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA DALE", "valor": 280000.0, "obs": "Puerta cocina", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "ENVIA TRANSPORTE ", "valor": 150000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "JARDIN ISABELLA", "valor": 245000.0, "obs": "", "tipo": "ISABELLA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-06", "fecha_label": "06/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "MERCADO CARTAGO", "valor": 29140.0, "obs": "D1", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-06", "fecha_label": "06/06/2026", "origen": "EFECTIVO", "gasto": "COMIDAS CARTAGO", "valor": 10000.0, "obs": "Chuzo", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS CARTAGO", "valor": 150000.0, "obs": "Camiseta Selección", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "EFECTIVO", "gasto": "VARIOS ISABELLA", "valor": 30000.0, "obs": "Camiseta Selección", "tipo": "ISABELLA", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-07", "fecha_label": "07/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "GASOLINA", "valor": 209500.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}, {"fecha": "2026-06-07", "fecha_label": "07/06/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 45000.0, "obs": "La carreta", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN"}];
+const TODOS  = [{"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "EFECTIVO", "gasto": "NOMINA FERNEY", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COPATRIA", "gasto": "NOMINA SAID", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COPATRIA", "gasto": "NOMINA ADRIANA", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "EFECTIVO", "gasto": "EMPLEADA CARTAGO", "valor": 700000.0, "obs": "", "tipo": "EMPLEADA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA BOGOTÁ", "valor": 400000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "CARMENZA"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURIDAD NACIONAL CENTRO", "valor": 103248.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURIDAD NACIONAL FÀBRICA", "valor": 103248.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "OFELIA VÉLEZ", "valor": 350000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "OFIELIA VÉLEZ"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "EFECTIVO", "gasto": "CONTABILIDAD ROGER", "valor": 1200000.0, "obs": "", "tipo": "CONTABILIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COLPATRIA", "gasto": "ARRENDAMIENTO CENTRO", "valor": 2650000.0, "obs": "", "tipo": "ARRENDAMIENTO", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "BANCOLOMBIA", "gasto": "ARRENDAMIENTO HERNANDO", "valor": 1000000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "HERNANDO"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL SHAID", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL ADRIANA", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL FERNEY", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES SAID", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES ADRIANA", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES FERNEY", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN IVA", "valor": 1500000.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "EFECTIVO", "gasto": "CAROLA", "valor": 200000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "CAROLA"}, {"fecha": "2026-03-31", "fecha_label": "31/03/2026", "origen": "EFECTIVO", "gasto": "CARLOS SERNA", "valor": 200000.0, "obs": "", "tipo": "GESTIÒN EN SEGURIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "CARLOS SERNA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "OFFICE 365", "valor": 520000.0, "obs": "", "tipo": "SOFTWARE / SUSC.", "periodicidad": "ANUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "PERIODICO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "IMPUESTO VEHÍCULO", "valor": 1820000.0, "obs": "EIZ791", "tipo": "IMPUESTOS", "periodicidad": "ANUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "PERIODICO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURO LOCAL ISERRA", "valor": 1200000.0, "obs": "", "tipo": "SEGUROS", "periodicidad": "ANUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "PERIODICO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "NOMINA FERNEY", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "NOMINA SAID", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "NOMINA ADRIANA", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "EMPLEADA CARTAGO", "valor": 700000.0, "obs": "", "tipo": "EMPLEADA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA BOGOTÁ", "valor": 500000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "CARMENZA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "SERVICIOS HERNANDO", "valor": 258380.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURIDAD NACIONAL CENTRO", "valor": 103248.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "SEGURIDAD NACIONAL FÀBRICA", "valor": 103248.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "OFELIA VÉLEZ", "valor": 350000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "OFIELIA VÉLEZ"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "CONTABILIDAD ROGER", "valor": 1200000.0, "obs": "", "tipo": "CONTABILIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "ARRENDAMIENTO CENTRO", "valor": 2650000.0, "obs": "", "tipo": "ARRENDAMIENTO", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "BANCOLOMBIA", "gasto": "ARRENDAMIENTO HERNANDO", "valor": 1000000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "HERNANDO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "RETENCIÓN EN LA FUENTE", "valor": 435000.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL SHAID", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL ADRIANA", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL FERNEY", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES SAID", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES ADRIANA", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES FERNEY", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN IVA", "valor": 1500000.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "CAROLA", "valor": 200000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "CAROLA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "INTERMEDIACIÓN ADDI", "valor": 82300.0, "obs": "", "tipo": "INTERMEDIACIÓN EN VENTAS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "INTERMEDIACIÓN BOLD", "valor": 39380.0, "obs": "", "tipo": "INTERMEDIACIÓN EN VENTAS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "ENERGIA FABRICA", "valor": 230755.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "AGUA FABRICA", "valor": 183365.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE Y ACARREOS", "valor": 300000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "BOTAS FERNEY", "valor": 117900.0, "obs": "", "tipo": "DOTACIÓN", "periodicidad": "S", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "PERIODICO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "INTERMEDIACIÓN BOLD", "valor": 149215.0, "obs": "", "tipo": "INTERMEDIACIÓN EN VENTAS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "BOTELLONES AGUA", "valor": 27400.0, "obs": "", "tipo": "ASEO Y CAFETERIA", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "JUAN SEBASTIAN CARDONA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 100000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "RUBEN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "VARIOS FÁBRICA", "valor": 16000.0, "obs": "", "tipo": "GASTOS VARIOS", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "PAPELERÍA", "valor": 30000.0, "obs": "", "tipo": "PAPELERÍA", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "ASEO Y CAFETERÍA", "valor": 12000.0, "obs": "", "tipo": "ASEO Y CAFETERIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 50000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "OSCAR RENDÓN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE Y ACARREOS", "valor": 10200.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 561000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "RUBEN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "NOMINA NICOLAS", "valor": 50000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "JUAN SEBASTIAN CARDONA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 111000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "RUBEN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "ADECUACIONES FÁBRICA", "valor": 42000.0, "obs": "", "tipo": "ADECUACIONES / REPAR.", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "CARTAGO", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "GASOLINA", "valor": 20000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 50000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "RUBEN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 150000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 120000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 100000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "OSCAR RENDÓN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "JUAN SEBASTIAN CARDONA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE Y ACARREOS", "valor": 8000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "NOMINA NICOLAS", "valor": 100000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE Y ACARREOS", "valor": 55700.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 120000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "CARLOS SERNA", "valor": 200000.0, "obs": "", "tipo": "GESTIÒN EN SEGURIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "CARLOS SERNA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "CARLOS ARTURO CASTAÑEDA", "valor": 195000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "CARLOS ARTURO CASTAÑEDA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 300000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "RUBEN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "JUAN SEBASTIAN CARDONA"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 250000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 150000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "OSCAR RENDÓN"}, {"fecha": "2026-04-30", "fecha_label": "30/04/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 60000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "JUAN SEBASTIAN CARDONA"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA CARTAGO", "valor": 700000.0, "obs": "", "tipo": "EMPLEADA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "NOMINA FERNEY", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "NOMINA SAID", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "NOMINA ADRIANA", "valor": 2000000.0, "obs": "", "tipo": "NOMINA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "EMPLEADA BOGOTÁ", "valor": 400000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "CARMENZA"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 153000.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "NEQUI", "gasto": "VARIOS BOGOTÁ", "valor": 28000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS BOGOTÁ", "valor": 124850.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "MERCADO CARTAGO", "valor": 50000.0, "obs": "", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS ISABELLA", "valor": 300000.0, "obs": "", "tipo": "ISABELLA", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "BANCOLOMBIA", "gasto": "GASOLINA", "valor": 200000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE Y ACARREOS", "valor": 4000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "COLPATRIA", "gasto": "PUBLICIDAD", "valor": 328000.0, "obs": "", "tipo": "PUBLICIDAD", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "VARIOS VIVIANA", "valor": 70000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "MERCADO CARTAGO", "valor": 50000.0, "obs": "", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "VARIOS VIVIANA", "valor": 20000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "GASOLINA", "valor": 30000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "ENERGIA CASA", "valor": 199196.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "AGUA CASA", "valor": 154059.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "EFECTIVO", "gasto": "GAS CASA", "valor": 85919.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD NACIONAL CENTRO", "valor": 139120.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "COLPATRIA", "gasto": "ARRENDAMIENTO CENTRO", "valor": 2650000.0, "obs": "", "tipo": "ARRENDAMIENTO", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "COLPATRIA", "gasto": "IVA", "valor": 6109000.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-30", "fecha_label": "30/05/2026", "origen": "BANCOLOMBIA", "gasto": "ARRENDAMIENTO HERNANDO", "valor": 1000000.0, "obs": "", "tipo": "APTO. HERNANDO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "HERNANDO"}, {"fecha": "2026-05-02", "fecha_label": "02/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 20000.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "ALMUERZO BOGOTÁ", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "CLARO FABRICA", "valor": 87700.0, "obs": "", "tipo": "COMUNICACIONES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "BOTELLONES AGUA", "valor": 27400.0, "obs": "", "tipo": "ASEO Y CAFETERIA", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "PRESTAMO", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD NACIONAL FÀBRICA", "valor": 139120.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD NACIONAL CENTRO", "valor": 67376.0, "obs": "", "tipo": "VIGILANCIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "ENERGIA CENTRO", "valor": 123056.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "RETENCIÓN EN LA FUENTE", "valor": 337000.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "AGUA CENTRO", "valor": 152443.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "AGUA FABRICA", "valor": 185193.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "ENERGIA FABRICA", "valor": 272633.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "OFELIA VÉLEZ", "valor": 400000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "OFIELIA VÉLEZ"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "REGALOS", "valor": 80000.0, "obs": "ISAAC", "tipo": "REGALOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 250000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "RUBEN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "COMIDAS BOGOTÁ", "valor": 159580.0, "obs": "", "tipo": "COMIDA", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 531000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "OSCAR RENDÓN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "BOLSAS TELA ARTURO", "valor": 165000.0, "obs": "", "tipo": "EMPAQUE", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS BOGOTÁ", "valor": 2577000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS ISABELLA", "valor": 434000.0, "obs": "", "tipo": "ISABELLA", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS VIVIANA", "valor": 1500000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "CONTABILIDAD ROGER", "valor": 1200000.0, "obs": "", "tipo": "CONTABILIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "ENERGIA CENTRO", "valor": 145846.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "COLPATRIA", "gasto": "AGUA CENTRO", "valor": 150630.0, "obs": "", "tipo": "SERVICIOS PÙBLICOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 250000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "VARIOS BOGOTÁ", "valor": 130000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "CARLOS ARTURO CASTAÑEDA", "valor": 292500.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "CARLOS ARTURO CASTAÑEDA"}, {"fecha": "2026-05-25", "fecha_label": "25/05/2026", "origen": "EFECTIVO", "gasto": "JAVIER OSPINA", "valor": 400000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "JAVIER OSPINA"}, {"fecha": "2026-05-12", "fecha_label": "12/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 361000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 50000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "JUAN SEBASTIAN CARDONA"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 50000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "OSCAR RENDÓN"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 400000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "RUBEN"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "CARLOS SERNA", "valor": 200000.0, "obs": "", "tipo": "GESTIÒN EN SEGURIDAD", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "CARLOS SERNA"}, {"fecha": "2026-05-09", "fecha_label": "09/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 50000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-05-02", "fecha_label": "02/05/2026", "origen": "EFECTIVO", "gasto": "LUCIO URBANO", "valor": 200000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "LUCIO URBANO"}, {"fecha": "2026-05-01", "fecha_label": "01/05/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "JUAN SEBASTIAN CARDONA"}, {"fecha": "2026-05-01", "fecha_label": "01/05/2026", "origen": "EFECTIVO", "gasto": "OSCAR RENDÓN", "valor": 150000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "OSCAR RENDÓN"}, {"fecha": "2026-05-01", "fecha_label": "01/05/2026", "origen": "EFECTIVO", "gasto": "CARLOS ARTURO CASTAÑEDA", "valor": 494000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "CARLOS ARTURO CASTAÑEDA"}, {"fecha": "2026-05-16", "fecha_label": "16/05/2026", "origen": "EFECTIVO", "gasto": "RUBEN", "valor": 120000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "RUBEN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "INTERMEDIACIÓN ADDI", "valor": 104809.0, "obs": "", "tipo": "INTERMEDIACIÓN EN VENTAS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "INTERMEDIACIÓN BOLD", "valor": 40663.0, "obs": "", "tipo": "INTERMEDIACIÓN EN VENTAS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "INSUMOS VARIOS", "valor": 7800.0, "obs": "Cremallera", "tipo": "INSUMOS VARIOS", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "VARIOS VIVIANA", "valor": 143000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "NOMINA NICOLAS", "valor": 50000.0, "obs": "", "tipo": "NOMINA INDIRECTA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE NICOLAS", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "NICOLAS LLANOS"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "JUAN ESTEBAN CARDONA", "valor": 100000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "JUAN SEBASTIAN CARDONA"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "ASEO Y CAFETERÍA", "valor": 61000.0, "obs": "", "tipo": "ASEO Y CAFETERIA", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "RETEICA", "valor": 53440.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "TRANSPORTE Y ACARREOS", "valor": 90400.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "PAPELERÍA", "valor": 18750.0, "obs": "", "tipo": "PAPELERÍA", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "VARIOS VIVIANA", "valor": 113100.0, "obs": "", "tipo": "VARIOS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "PARQUEADERO", "valor": 5000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "SEGURIDAD SOCIAL", "valor": 1572255.0, "obs": "", "tipo": "SIN CLASIFICAR", "periodicidad": "SIN", "clasificacion": "SIN CLASIFICAR", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "INSUMOS VARIOS", "valor": 8000.0, "obs": "Tornillos", "tipo": "INSUMOS VARIOS", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL SHAID", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL ADRIANA", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL FERNEY", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES SAID", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES ADRIANA", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES FERNEY", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN IVA", "valor": 1500000.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-05-31", "fecha_label": "31/05/2026", "origen": "EFECTIVO", "gasto": "CAROLA", "valor": 200000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "CAROLA"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "ALMUERZO BOGOTA", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 55000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 22000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "TIQUETE AEREO", "valor": 353720.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "WHATSAP BUSINESS", "valor": 29221.0, "obs": "", "tipo": "SOFTWARE / SUSC.", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA NEQUI", "valor": 87338.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "MERCADO CARTAGO", "valor": 3450.0, "obs": "", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "PICO Y PLACA SOLIDARIO", "valor": 87900.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "CUENTA X COBRAR", "valor": 280000.0, "obs": "Arreglo anden Carola", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "ALMUERZO BOGOTA", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "DALE", "gasto": "LIVE CONNECT", "valor": 280476.0, "obs": "", "tipo": "SOFTWARE / SUSC.", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "TIQUETE FAISA", "valor": 410760.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "TARJETA VIVI", "valor": 480400.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA DALE", "valor": 50000.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA DALE", "valor": 225008.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS BOGOTÁ", "valor": 20000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA NEQUI", "valor": 26000.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "NEQUI", "gasto": "AMAZON KINDLE", "valor": 34084.0, "obs": "", "tipo": "LIBROS", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "NEQUI", "gasto": "TELEVISIÓN SUSCRIPCIÓN", "valor": 13900.0, "obs": "", "tipo": "SUSCRIPCION TV", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "ALMUERZO BOGOTÁ", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-03", "fecha_label": "03/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "VARIOS BOGOTÁ", "valor": 12000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-04", "fecha_label": "04/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS BOGOTÁ", "valor": 20000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-04", "fecha_label": "04/06/2026", "origen": "BANCOLOMBIA", "gasto": "JUAN DAVID", "valor": 100000.0, "obs": "", "tipo": "SOFTWARE / SUSC.", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "JUAN DAVID"}, {"fecha": "2026-06-04", "fecha_label": "04/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "ALMUERZO BOGOTÁ", "valor": 18550.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-04", "fecha_label": "04/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 18000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 44000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "MEDICAMENTOS POR RECOBRO", "valor": 33546.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "PELUQUERIA", "valor": 25000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "TAXI BOGOTÀ", "valor": 46000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "BOGOTÀ", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 57600.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS CARTAGO", "valor": 20000.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS CARTAGO", "valor": 20008.0, "obs": "", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "NEQUI", "gasto": "MICROSOFT ROGER", "valor": 36999.0, "obs": "", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "RECARGA DALE", "valor": 280000.0, "obs": "Puerta cocina", "tipo": "SIN", "periodicidad": "SIN", "clasificacion": "SIN", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "SIN", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "ENVIA TRANSPORTE ", "valor": 150000.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "VARIABLE", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "JARDIN ISABELLA", "valor": 245000.0, "obs": "", "tipo": "ISABELLA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-06", "fecha_label": "06/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "MERCADO CARTAGO", "valor": 29140.0, "obs": "D1", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-06", "fecha_label": "06/06/2026", "origen": "EFECTIVO", "gasto": "COMIDAS CARTAGO", "valor": 10000.0, "obs": "Chuzo", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "BANCOLOMBIA", "gasto": "VARIOS CARTAGO", "valor": 150000.0, "obs": "Camiseta Selección", "tipo": "VARIOS", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-05", "fecha_label": "05/06/2026", "origen": "EFECTIVO", "gasto": "VARIOS ISABELLA", "valor": 30000.0, "obs": "Camiseta Selección", "tipo": "ISABELLA", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-07", "fecha_label": "07/06/2026", "origen": "TARJETA COLPATRIA", "gasto": "GASOLINA", "valor": 209500.0, "obs": "", "tipo": "TRANSPORTE", "periodicidad": "SIN", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-07", "fecha_label": "07/06/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 45000.0, "obs": "La carreta", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL SHAID", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL ADRIANA", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "COLPATRIA", "gasto": "SEGURIDAD SOCIAL FERNEY", "valor": 393064.0, "obs": "", "tipo": "SEGURIDAD SOCIAL", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES SAID", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SAID"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES ADRIANA", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "CENTRO", "proveedor": "ADRIANA MONTOYA"}, {"fecha": "2026-06-02", "fecha_label": "02/06/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN PRESTACIONES FERNEY", "valor": 436667.0, "obs": "", "tipo": "PRESTACIONES SOCIALES", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "FERNEY"}, {"fecha": "2026-06-01", "fecha_label": "01/06/2026", "origen": "PROVISIÓN", "gasto": "PROVISIÓN IVA", "valor": 1500000.0, "obs": "", "tipo": "IMPUESTOS", "periodicidad": "MENSUAL", "clasificacion": "FÉVEL", "ciudad": "SIN", "gasto_activo": "GASTO", "fijo_variable": "FIJO", "centro_fabrica": "FÁBRICA", "proveedor": "SIN"}, {"fecha": "2026-06-07", "fecha_label": "07/06/2026", "origen": "EFECTIVO", "gasto": "CAROLA", "valor": 200000.0, "obs": "", "tipo": "DONACIÒN", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "SIN", "gasto_activo": "SIN", "fijo_variable": "FIJO", "centro_fabrica": "SIN", "proveedor": "CAROLA"}, {"fecha": "2026-06-07", "fecha_label": "07/06/2026", "origen": "BANCOLOMBIA", "gasto": "COMIDAS CARTAGO", "valor": 32000.0, "obs": "", "tipo": "COMIDA", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}, {"fecha": "2026-06-08", "fecha_label": "08/06/2026", "origen": "BANCOLOMBIA", "gasto": "MERCADO CARTAGO", "valor": 23900.0, "obs": "", "tipo": "MERCADO", "periodicidad": "MENSUAL", "clasificacion": "PERSONAL", "ciudad": "CARTAGO", "gasto_activo": "SIN", "fijo_variable": "VARIABLE", "centro_fabrica": "SIN", "proveedor": "SIN"}];
 const PALETA = ["#4F81C7", "#E8734A", "#5BAD8F", "#F0C040", "#A47BB5", "#E87A97", "#70B8D4", "#B5C96A"];
 
 const EVOL_LABELS        = ["Mar 2026", "Abr 2026", "May 2026", "Jun 2026"];
-const EVOL_HIST_PERSONAL = {"APTO. HERNANDO": [1400000, 1758380, 1400000, 0], "COMIDA": [0, 0, 351130, 186800], "DONACIÒN": [350000, 350000, 1100000, 0], "EMPLEADA": [700000, 1100000, 700000, 0], "IMPUESTOS": [0, 1820000, 0, 0], "ISABELLA": [0, 0, 734000, 275000], "LIBROS": [0, 0, 0, 34084], "MERCADO": [0, 0, 100000, 32590], "REGALOS": [0, 0, 80000, 0], "SEGUROS": [0, 1200000, 0, 0], "SERVICIOS PÙBLICOS": [0, 0, 1011149, 0], "SUSCRIPCION TV": [0, 0, 0, 13900], "TRANSPORTE": [0, 0, 230000, 748220], "VARIOS": [0, 0, 4449850, 267008]};
-const EVOL_HIST_FEVEL    = {"ARRENDAMIENTO": [2650000, 2650000, 2650000, 0], "ASEO Y CAFETERIA": [0, 0, 27400, 0], "COMUNICACIONES": [0, 0, 87700, 0], "CONTABILIDAD": [1200000, 1200000, 1200000, 0], "EMPAQUE": [0, 0, 165000, 0], "GESTIÒN EN SEGURIDAD": [0, 0, 200000, 0], "IMPUESTOS": [0, 0, 772000, 0], "NOMINA": [6000000, 6000000, 6000000, 0], "NOMINA INDIRECTA": [0, 0, 4298500, 0], "PUBLICIDAD": [0, 0, 328000, 0], "SERVICIOS PÙBLICOS": [0, 0, 457826, 0], "SOFTWARE / SUSC.": [0, 520000, 0, 409697], "TRANSPORTE": [0, 0, 4000, 150000], "VIGILANCIA": [206496, 206496, 345616, 0]};
+const EVOL_HIST_PERSONAL = {"APTO. HERNANDO": [1400000, 1758380, 1400000, 0], "COMIDA": [0, 0, 351130, 218800], "DONACIÒN": [550000, 1450000, 1500000, 200000], "EMPLEADA": [700000, 700000, 700000, 0], "IMPUESTOS": [0, 1820000, 0, 0], "ISABELLA": [0, 0, 734000, 275000], "LIBROS": [0, 0, 0, 34084], "MERCADO": [0, 0, 100000, 56490], "REGALOS": [0, 0, 80000, 0], "SEGUROS": [0, 1200000, 0, 0], "SERVICIOS PÙBLICOS": [0, 0, 1011149, 0], "SUSCRIPCION TV": [0, 0, 0, 13900], "TRANSPORTE": [0, 20000, 235000, 748220], "VARIOS": [0, 0, 4705950, 267008]};
+const EVOL_HIST_FEVEL    = {"ADECUACIONES / REPAR.": [0, 42000, 0, 0], "ARRENDAMIENTO": [2650000, 2650000, 2650000, 0], "ASEO Y CAFETERIA": [0, 39400, 88400, 0], "COMUNICACIONES": [0, 0, 87700, 0], "CONTABILIDAD": [1200000, 1200000, 1200000, 0], "DOTACIÓN": [0, 117900, 0, 0], "EMPAQUE": [0, 0, 165000, 0], "GASTOS VARIOS": [0, 16000, 0, 0], "GESTIÒN EN SEGURIDAD": [200000, 200000, 200000, 0], "IMPUESTOS": [1500000, 1935000, 1890440, 1500000], "INSUMOS VARIOS": [0, 0, 15800, 0], "INTERMEDIACIÓN EN VENTAS": [0, 270895, 145472, 0], "NOMINA": [6000000, 6000000, 6000000, 0], "NOMINA INDIRECTA": [0, 2567000, 4348500, 0], "PAPELERÍA": [0, 30000, 18750, 0], "PRESTACIONES SOCIALES": [1310001, 1310001, 1310001, 1310001], "PUBLICIDAD": [0, 0, 328000, 0], "SEGURIDAD SOCIAL": [1179192, 1179192, 1179192, 1179192], "SERVICIOS PÙBLICOS": [0, 414120, 457826, 0], "SOFTWARE / SUSC.": [0, 520000, 0, 409697], "TRANSPORTE": [0, 373900, 94400, 150000], "VIGILANCIA": [206496, 206496, 345616, 0]};
+const MESES_SET          = ["2026-03", "2026-04", "2026-05", "2026-06"];
+
+let estadoCiudadHistPersonal = 'TODAS';
+
+function computeEvolCampo(clasificacion, campo, ciudad, fv) {
+  let data = TODOS.filter(g => g.clasificacion.toUpperCase() === clasificacion);
+  if (ciudad && ciudad !== 'TODAS') data = data.filter(g => g.ciudad === ciudad);
+  if (fv && fv !== 'TODAS') data = data.filter(g => g.fijo_variable === fv);
+  const vals = [...new Set(data.map(g=>g[campo]))]
+    .filter(v => v && !v.toUpperCase().includes('SIN')).sort();
+  return vals.map((val, i) => ({
+    label: val,
+    data: MESES_SET.map(ym =>
+      Math.round(data.filter(g=>g[campo]===val && g.fecha.slice(0,7)===ym).reduce((s,g)=>s+g.valor,0))
+    ),
+    backgroundColor: PALETA[i % PALETA.length], borderRadius: 4
+  }));
+}
+
+function setCiudadHistPersonal(c, e) {
+  estadoCiudadHistPersonal = c;
+  document.querySelectorAll('.ciudad-btn').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  charts.cHistPersonal.data.datasets   = computeEvolCampo('PERSONAL', 'tipo', c);
+  charts.cHistPersonal.update();
+  charts.cHistPersonalFV.data.datasets = computeEvolCampo('PERSONAL', 'fijo_variable', c);
+  charts.cHistPersonalFV.update();
+  charts.cHistPersonalProv.data.datasets = computeEvolCampo('PERSONAL', 'proveedor', c);
+  charts.cHistPersonalProv.update();
+}
 
 const MESES_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 function fmtMesLabel(ym) {
@@ -1762,14 +2809,24 @@ const lineOpts = () => ({
 
 // ── Instancias ────────────────────────────────────────────────────────────────
 const charts = {
+  cHistPersonalCiudad: new Chart(document.getElementById('cHistPersonalCiudad'), {
+    type:'bar',
+    data:{ labels:MESES_SET, datasets: computeEvolCampo('PERSONAL', 'ciudad', 'TODAS') },
+    options: stackedOpts()
+  }),
   cHistPersonal: new Chart(document.getElementById('cHistPersonal'), {
     type:'bar',
-    data:{ labels:EVOL_LABELS,
-      datasets: Object.entries(EVOL_HIST_PERSONAL).map(([ciudad,vals],i) => ({
-        label: ciudad, data: vals,
-        backgroundColor: PALETA[i % PALETA.length], borderRadius:4
-      }))
-    },
+    data:{ labels:MESES_SET, datasets: computeEvolCampo('PERSONAL', 'tipo', 'TODAS') },
+    options: stackedOpts()
+  }),
+  cHistPersonalFV: new Chart(document.getElementById('cHistPersonalFV'), {
+    type:'bar',
+    data:{ labels:MESES_SET, datasets: computeEvolCampo('PERSONAL', 'fijo_variable', 'TODAS') },
+    options: stackedOpts()
+  }),
+  cHistPersonalProv: new Chart(document.getElementById('cHistPersonalProv'), {
+    type:'bar',
+    data:{ labels:MESES_SET, datasets: computeEvolCampo('PERSONAL', 'proveedor', 'TODAS') },
     options: stackedOpts()
   }),
   cHistFevel: new Chart(document.getElementById('cHistFevel'), {
@@ -1782,12 +2839,19 @@ const charts = {
     },
     options: stackedOpts()
   }),
-  cClasif:      new Chart(document.getElementById('cClasif'),      {type:'doughnut',data:{labels:[],datasets:[{data:[],backgroundColor:[]}]},options:donutOpts()}),
+  cHistFevelProv: new Chart(document.getElementById('cHistFevelProv'), {
+    type:'bar',
+    data:{ labels:MESES_SET, datasets: computeEvolCampo('FÉVEL', 'proveedor', 'TODAS') },
+    options: stackedOpts()
+  }),
+  cClasif:      new Chart(document.getElementById('cClasif'),      {type:'bar',data:{labels:MESES_SET,datasets:[{label:'Personal',data:MESES_SET.map(ym=>Math.round(TODOS.filter(g=>g.clasificacion.toUpperCase()==='PERSONAL'&&g.fecha.slice(0,7)===ym).reduce((s,g)=>s+g.valor,0))),backgroundColor:'#4F81C7',borderRadius:4},{label:'Fével',data:MESES_SET.map(ym=>Math.round(TODOS.filter(g=>g.clasificacion.toUpperCase()==='FÉVEL'&&g.fecha.slice(0,7)===ym).reduce((s,g)=>s+g.valor,0))),backgroundColor:'#5BAD8F',borderRadius:4}]},options:stackedOpts()}),
   cTipo:        new Chart(document.getElementById('cTipo'),        {type:'bar',     data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:6}]},options:barOpts()}),
-  cGastoActivo: new Chart(document.getElementById('cGastoActivo'),{type:'bar',     data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:6}]},options:barOpts()}),
   cOrigen:      new Chart(document.getElementById('cOrigen'),      {type:'bar',     data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:6}]},options:barOpts()}),
-  cCiudad:      new Chart(document.getElementById('cCiudad'),      {type:'doughnut',data:{labels:[],datasets:[{data:[],backgroundColor:[]}]},options:donutOpts()}),
+  cCiudad:      new Chart(document.getElementById('cCiudad'),      {type:'bar',data:{labels:MESES_SET,datasets:[]},options:stackedOpts()}),
   cPeriodicidad:new Chart(document.getElementById('cPeriodicidad'),{type:'bar',    data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:6}]},options:barOpts()}),
+  cFijoVariable:  new Chart(document.getElementById('cFijoVariable'),  {type:'doughnut',data:{labels:[],datasets:[{data:[],backgroundColor:[]}]},options:donutOpts()}),
+  cCentroFabrica: new Chart(document.getElementById('cCentroFabrica'), {type:'bar',data:{labels:MESES_SET,datasets:[]},options:stackedOpts()}),
+  cProveedor:     new Chart(document.getElementById('cProveedor'),     {type:'bar',     data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:6}]},options:barOpts()}),
   cFecha:       new Chart(document.getElementById('cFecha'),       {type:'line',    data:{labels:[],datasets:[{data:[],borderColor:'#4F81C7',backgroundColor:'rgba(79,129,199,0.12)',tension:0.3,fill:true,pointRadius:5}]},options:lineOpts()}),
 };
 
@@ -1807,14 +2871,16 @@ function render() {
   let data = tab==='TODO' ? TODOS : TODOS.filter(g=>g.clasificacion.toUpperCase()===tab);
   if (mes!=='TODOS') data = data.filter(g=>g.fecha.slice(0,7)===mes);
 
-  const total = data.reduce((s,g)=>s+g.valor,0);
+  // Solo FÉVEL y PERSONAL en KPIs
+  const dataKpi = data.filter(g=>['FÉVEL','PERSONAL'].includes(g.clasificacion.toUpperCase()));
+  const total = dataKpi.reduce((s,g)=>s+g.valor,0);
 
   // KPIs
-  const clasif = agrupar(data,'clasificacion');
+  const clasif = agrupar(dataKpi,'clasificacion').filter(([k])=>['FÉVEL','PERSONAL'].includes(k.toUpperCase()));
   document.getElementById('kpiBox').innerHTML =
     `<div class="kpi"><div class="label">Total — ${fmtMesLabel(mes)}</div>
        <div class="value">${fmtCOP(total)}</div>
-       <div class="sub">${data.length} transacciones</div></div>` +
+       <div class="sub">${dataKpi.length} transacciones</div></div>` +
     clasif.map(([k,v])=>
       `<div class="kpi"><div class="label">${k}</div>
        <div class="value">${fmtCOP(v)}</div>
@@ -1832,8 +2898,10 @@ function render() {
   document.getElementById('cardHistFevel').style.display    = isHistFevel    ? '' : 'none';
   document.getElementById('cardClasif').style.display       = isTodo  ? '' : 'none';
   document.getElementById('cardTipo').style.display         = (tab==='PERSONAL'||isFevel) ? '' : 'none';
-  document.getElementById('cardGastoActivo').style.display  = isFevel ? '' : 'none';
-  document.getElementById('cardCiudad').style.display       = (isTodo||tab==='PERSONAL') ? '' : 'none';
+  document.getElementById('cardCiudad').style.display        = (isTodo||tab==='PERSONAL') ? '' : 'none';
+  document.getElementById('cardFijoVariable').style.display  = isHist ? 'none' : '';
+  document.getElementById('cardCentroFabrica').style.display = (!isHist && isFevel) ? '' : 'none';
+  document.getElementById('cardProveedor').style.display     = (!isHist && !isTodo) ? '' : 'none';
 
   document.getElementById('kpiBox').style.display          = isHist ? 'none' : '';
   document.querySelector('.table-section').style.display   = isHist ? 'none' : '';
@@ -1844,21 +2912,36 @@ function render() {
   // Charts comunes
   const ag = campo => { const e=agrupar(data,campo); return [e.map(x=>x[0]),e.map(x=>Math.round(x[1]))]; };
   let lv;
-  lv=ag('clasificacion');
-  const clFilt=lv[0].map((l,i)=>[l,lv[1][i]]).filter(x=>!x[0].toUpperCase().includes('SIN'));
-  upd(charts.cClasif, clFilt.map(x=>x[0]), clFilt.map(x=>x[1]), colores(clFilt.length));
+  // cClasif: stacked bar is static (uses full TODOS, not filtered by mes/tab)
   lv=ag('tipo');          upd(charts.cTipo,        lv[0],lv[1],colores(lv[0].length));
   lv=ag('origen');        upd(charts.cOrigen,      lv[0],lv[1],colores(lv[0].length));
   lv=ag('periodicidad');  upd(charts.cPeriodicidad,lv[0],lv[1],colores(lv[0].length));
 
-  lv=ag('ciudad');
-  const cf=lv[0].map((l,i)=>[l,lv[1][i]]).filter(x=>x[0].toUpperCase()!=='SIN');
-  upd(charts.cCiudad, cf.map(x=>x[0]), cf.map(x=>x[1]), colores(cf.length));
+  lv=ag('fijo_variable');
+  const fvFilt=lv[0].map((l,i)=>[l,lv[1][i]]).filter(x=>!x[0].toUpperCase().includes('SIN'));
+  upd(charts.cFijoVariable, fvFilt.map(x=>x[0]), fvFilt.map(x=>x[1]), colores(fvFilt.length));
+
+  lv=ag('proveedor');
+  const pvFilt=lv[0].map((l,i)=>[l,lv[1][i]]).filter(x=>!x[0].toUpperCase().includes('SIN'));
+  upd(charts.cProveedor, pvFilt.map(x=>x[0]), pvFilt.map(x=>Math.round(x[1])), colores(pvFilt.length));
 
   if (isFevel) {
-    const gaData=data.filter(g=>g.gasto_activo.toUpperCase()!=='SIN');
-    const gaAgr=agrupar(gaData,'gasto');
-    upd(charts.cGastoActivo, gaAgr.map(x=>x[0]), gaAgr.map(x=>Math.round(x[1])), colores(gaAgr.length));
+    const cfActivos = [...new Set(data.map(g=>g.centro_fabrica))].filter(c=>c&&!c.toUpperCase().includes('SIN')).sort();
+    charts.cCentroFabrica.data.datasets = cfActivos.map((c,i)=>({
+      label:c, borderRadius:4, backgroundColor:PALETA[i%PALETA.length],
+      data:MESES_SET.map(ym=>Math.round(data.filter(g=>g.centro_fabrica===c&&g.fecha.slice(0,7)===ym).reduce((s,g)=>s+g.valor,0)))
+    }));
+    charts.cCentroFabrica.update();
+  }
+
+  const ciudadesActivas = [...new Set(data.map(g=>g.ciudad))].filter(c=>c&&c.toUpperCase()!=='SIN').sort();
+  charts.cCiudad.data.datasets = ciudadesActivas.map((c,i)=>({
+    label:c, borderRadius:4, backgroundColor:PALETA[i%PALETA.length],
+    data:MESES_SET.map(ym=>Math.round(data.filter(g=>g.ciudad===c&&g.fecha.slice(0,7)===ym).reduce((s,g)=>s+g.valor,0)))
+  }));
+  charts.cCiudad.update();
+
+  if (isFevel) {
   }
 
   // Resaltar mes seleccionado en evolución
@@ -1889,21 +2972,19 @@ function render() {
   });
 }
 
-// ── Controles ─────────────────────────────────────────────────────────────────
+// ── Controles ────────────────────────────────────────────────────────────────
 function setTab(t, e) {
   estadoTab = t;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   e.target.classList.add('active');
   render();
 }
-
 function setMes(m, e) {
   estadoMes = m;
   document.querySelectorAll('.mes-btn').forEach(b=>b.classList.remove('active'));
   e.target.classList.add('active');
   render();
 }
-
 render();
 </script>
 </body>
